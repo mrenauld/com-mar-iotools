@@ -1,87 +1,83 @@
 package com.mar.iotools.directory;
 
-import java.io.File;
-import java.util.Vector;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.stream.Stream;
 
-import com.mar.iotools.string.PathUtils;
+import com.mar.framework.core.logging.LogUtils;
+import com.mar.framework.core.utils.ObjectUtils;
 
 public class DirectoryUtils {
-	
-	/**
-	 * Returns the list of files in the specified directory. If opensubfolder is
-	 * set to true, the subfolders are also explored.
-	 * 
-	 * @param path
-	 * @param opensubfolder
-	 * @return
-	 */
-	public static Vector<String> getFilesFromDirectory( String path,
-			boolean opensubfolder ) {
-		File dir = new File(path);
-		if( dir.exists() == false ) {
-			System.out.println("Directory.getFilesFromDirectory - warning:"
-					+ " the directory does not exist.");
-			return null;
-		}
-		if( dir.isDirectory() == false ) {
-			System.out.println("Directory.getFilesFromDirectory - warning:"
-					+ " the path is not a directory.");
-			return null;
-		}
-		
-		Vector<String> listOfFiles = new Vector<String>(10);
-		String[] children = dir.list();
-		for( int i = 0; i < children.length; ++i ) {
-			dir = new File(children[i]);
-			if( dir.isDirectory() ) {
-				listOfFiles.addAll(getFilesFromDirectory(children[i],
-						opensubfolder));
-			}
-			else {
-				listOfFiles.add(children[i]);
-			}
-		}
-		
-		return listOfFiles;
-	}
-	
-	/**
-	 * Returns the list of files in the specified directory that match the 
-	 * specified extension. If opensubfolder is set to true, the subfolders
-	 * are also explored.
-	 * 
-	 * @param path
-	 * @param opensubfolder
-	 * @param extension
-	 * @return
-	 */
-	public static Vector<String> getFilesFromDirectory( String path,
-			boolean opensubfolder, String extension ) {
-		File dir = new File(path);
-		if( dir.exists() == false ) {
-			System.out.println("Directory.getFilesFromDirectory - warning:"
-					+ " the directory does not exist.");
-			return null;
-		}
-		if( dir.isDirectory() == false ) {
-			System.out.println("Directory.getFilesFromDirectory - warning:"
-					+ " the path is not a directory.");
-			return null;
-		}
-		
-		Vector<String> listOfFiles = new Vector<String>(10);
-		String[] children = dir.list();
-		for( int i = 0; i < children.length; ++i ) {
-			dir = new File(children[i]);
-			if( dir.isDirectory() ) {
-				listOfFiles.addAll(getFilesFromDirectory(children[i],
-						opensubfolder, extension));
-			}
-			else if( PathUtils.hasExtension(children[i], extension) ){
-				listOfFiles.add(children[i]);
-			}
-		}
-		
-		return listOfFiles;
-	}
+
+    /**
+     * Returns the list of file paths in the specified folder (and not in the
+     * subfolders).
+     *
+     * @param pFolderPath
+     * @return
+     */
+    public static ArrayList<String> listFilesInFolder(String pFolderPath) {
+        return listFilesInFolder(pFolderPath, false, null);
+    }
+
+    /**
+     * Returns the list of file paths in the specified folder. If
+     * pIncludeSubfolders is set to true, the subfolders are also explored.
+     *
+     * @param pFolderPath
+     * @param pIncludeSubfolders
+     * @return
+     */
+    public static ArrayList<String> listFilesInFolder(String pFolderPath, boolean pIncludeSubfolders) {
+        return listFilesInFolder(pFolderPath, pIncludeSubfolders, null);
+    }
+
+    /**
+     * Returns the list of files in the specified folder that match the
+     * specified extension. If pIncludeSubfolders is set to true, the subfolders
+     * are also explored.
+     *
+     * @param pFolderPath
+     * @param pIncludeSubfolders
+     * @param pExtension
+     * @return
+     */
+    public static ArrayList<String> listFilesInFolder(String pFolderPath, boolean pIncludeSubfolders,
+            String pExtension) {
+        ArrayList<String> list = new ArrayList<String>();
+
+        /*
+         * depth = 0 -> only the specified file/folder is returned. To get all
+         * files inside a folder, depth must be set to 1.
+         */
+        int depth = 1;
+        if (pIncludeSubfolders) {
+            depth = Integer.MAX_VALUE;
+        }
+
+        String matcherString = "glob:**";
+        if (!ObjectUtils.isObjectEmpty(pExtension)) {
+            matcherString += "." + pExtension;
+        }
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher(matcherString);
+
+        try (Stream<Path> paths = Files.walk(Paths.get(pFolderPath), depth)) {
+            // paths.filter(Files::isRegularFile).filter(path ->
+            // matcher.matches(path))
+            // .forEach(path ->
+            // System.out.println(path.normalize().toString()));
+            paths.filter(Files::isRegularFile).filter(path -> matcher.matches(path))
+                    .forEach(path -> list.add(path.normalize().toString()));
+        } catch (IOException e) {
+            LogUtils.logError(DirectoryUtils.class, "IOException while listing files in folder [" + pFolderPath + "]",
+                    e);
+        }
+
+        return list;
+    }
 }
