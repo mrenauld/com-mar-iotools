@@ -6,6 +6,8 @@ import java.util.regex.Matcher;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.mar.framework.core.utils.ObjectUtils;
+
 /**
  * Utility class for manipulating filenames and paths, based on
  * org.apache.commons.io.FilenameUtils. We use the same nomenclature as
@@ -46,6 +48,20 @@ public class FilepathUtils {
      */
     public static String addExtensionIfNotPresent(String pFilename, String pExtension) {
         return pFilename + "." + pExtension;
+    }
+
+    /**
+     * Adds a '/' at the end of the path, if not already present.
+     *
+     * @param pPath
+     * @return
+     */
+    public static String addTrailingSeparator(String pPath) {
+        char end = pPath.charAt(pPath.length() - 1);
+        if (end != '\\' || end != '/') {
+            pPath += '/';
+        }
+        return pPath;
     }
 
     /**
@@ -110,20 +126,6 @@ public class FilepathUtils {
     }
 
     /**
-     * Adds a '/' at the end of the path, if not already present.
-     *
-     * @param pPath
-     * @return
-     */
-    public static String addTrailingSeparator(String pPath) {
-        char end = pPath.charAt(pPath.length() - 1);
-        if (end != '\\' || end != '/') {
-            pPath += '/';
-        }
-        return pPath;
-    }
-
-    /**
      * Removes the extensions of the specified filenames.
      *
      * @param files
@@ -170,5 +172,20 @@ public class FilepathUtils {
      */
     public static String replaceWithFileSeparator(String pFilename) {
         return pFilename.replaceAll("/", Matcher.quoteReplacement(File.separator));
+    }
+
+    /**
+     * Returns the specified name with the specified extension.
+     * 
+     * @param pFilename
+     * @param pExtension
+     * @return
+     */
+    public static String setExtension(String pName, String pExtension) {
+        String name = FilenameUtils.getBaseName(pName);
+        if (!ObjectUtils.isObjectEmpty(pExtension)) {
+            name += "." + pExtension;
+        }
+        return name;
     }
 }
